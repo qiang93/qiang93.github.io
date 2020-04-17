@@ -1,0 +1,22 @@
+policy:
+  approval:
+    - 'team-devops has approved'
+  disapproval:
+    requires:
+      organizations:
+        - hq-digital
+approval_rules:
+  -
+    name: 'team-devops has approved'
+    if:
+      targets_branch:
+        pattern: ^development|^release|^master$
+    options:
+      allow_author: true
+      allow_contributor: true
+      invalidate_on_push: true
+      ignore_update_merges: true
+    requires:
+      count: 1
+      teams:
+        - hq-digital/team-devops
