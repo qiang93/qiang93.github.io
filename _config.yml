@@ -5,9 +5,9 @@ header-img: img/post-bg-desk.jpg
 email: qianghu1993@gmail.com
 description: "devops blogs"
 keyword: "devops, kubernetes, k8s, docker, ci, cd"
-url: "http://qiubaiying.github.io"          # your host, for absolute URL
+url: "https://qiang93.github.io/qianghu.github.io"          # your host, for absolute URL
 baseurl: ""      # for example, '/blog' if your blog hosted on 'host/blog'
-github_repo: "https://github.com/qiubaiying/qiubaiying.github.io.git" # you code repository
+github_repo: "https://github.com/qiang93/qianghu.github.io.git" # you code repository
 
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
