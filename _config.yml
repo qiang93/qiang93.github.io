@@ -1,7 +1,7 @@
 # Site settings
 title: 强哥的博客
 SEOTitle: 强哥的博客 | BY Blog
-header-img: img/post-bg-desk.jpg
+header-img: img/home-bg-o.jpg
 email: qianghu1993@gmail.com
 description: "devops blogs"
 keyword: "devops, kubernetes, k8s, docker, ci, cd"
