@@ -1,0 +1,79 @@
+I"�<h3 id="前言">前言</h3>
+
+<hr />
+
+<p>从私有镜像仓库获取镜像时是需要密钥凭证的。</p>
+
+<p>对于云厂商都提供了相应的解决方案：</p>
+
+<ul>
+  <li>
+    <p>AWS EKS使用 IAM 角色和策略来控制对 ECR 仓库的访问 - 自动刷新 ECR 登录凭据。</p>
+  </li>
+  <li>
+    <p>GOOGLE GCE原生支持GCR,只能拉取但不能推送。</p>
+  </li>
+  <li>
+    <p>阿里云的aliyun-acr-credential-helper利用k8s准入控制器（Mutating Admission Control）的功能，通过授权对容器镜像服务的访问权限，获取临时账户和密码，然后为namespace创建对应的Secret以及更改default sa来引用这个Secret，实现私有镜像自动拉取。</p>
+  </li>
+</ul>
+
+<p>上述的解决方案都只针对云厂商自家的k8s服务或者云主机，如果我们是搭建在物理主机上或者自己本机想要实现自动拉取私有镜像有什么好的方案呢？</p>
+
+<h3 id="本人已知的几种方案">本人已知的几种方案</h3>
+
+<hr />
+
+<ul>
+  <li>对每个Node节点手动配置.docker/config.json</li>
+  <li>在防火墙内运行一个内置的私有仓库，并开放读取权限</li>
+  <li>在每个namespace下创建含有dockerconfigjson内容的Secret，使用<code class="highlighter-rouge">imagePullSecrets</code></li>
+  <li>在每个namespace下创建含有dockerconfigjson内容的Secret，更改default sa引用这个Secret</li>
+</ul>
+
+<h3 id="修改sa实现私有镜像自动拉取">修改SA实现私有镜像自动拉取</h3>
+
+<hr />
+
+<p>下面对第四种方案详细说明一下。</p>
+
+<p>首先在本机通过<code class="highlighter-rouge">docker login</code>登录私有镜像仓库，在<code class="highlighter-rouge">~/.docker/config.json</code>中将看到Auth信息。</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"auths"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"registry.cn-hongkong.aliyuncs.com"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"auth"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"cWlhbmc5mNvbTowQ1BAJGdxR3ZeMmpvTyU2"</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"HttpHeaders"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"User-Agent"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"Docker-Client/19.03.8 (darwin)"</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"stackOrchestrator"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"swarm"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"experimental"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"disabled"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>这里需要注意一下，如果你的config.json文件中并没有<code class="highlighter-rouge">auth</code>这段经过加密的信息，而是使用credsStore存储的，需要删除这个字段重启docker再次登录。</p>
+
+<blockquote>
+  <p>截至目前，Kubernetes 仅支持 docker config 的 <code class="highlighter-rouge">auths</code> 和 <code class="highlighter-rouge">HttpHeaders</code> 部分。这意味着不支持凭据助手（<code class="highlighter-rouge">credHelpers</code> 或 <code class="highlighter-rouge">credsStore</code>）。</p>
+</blockquote>
+
+<p>创建Secret</p>
+
+<blockquote>
+  <p>PS:注意修改自己的namespace，和本机config.json的正确路径</p>
+</blockquote>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl <span class="nt">-n</span> project-demo-api create secret generic acrcred <span class="se">\</span>
+    <span class="nt">--from-file</span><span class="o">=</span>.dockerconfigjson<span class="o">=</span>/Users/huqiang/.docker/config.json <span class="se">\</span>
+    <span class="nt">--type</span><span class="o">=</span>kubernetes.io/dockerconfigjson
+</code></pre></div></div>
+
+<p>以path的方式修改default sa</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl <span class="nt">-n</span> projects-demo-cicd patch serviceaccount default <span class="nt">-p</span> <span class="s1">'{"imagePullSecrets": [{"name": "acrcred"}]}'</span>
+</code></pre></div></div>
+
+<p>Ok~，到这里就已经实现好私有镜像自动拉取了，自己运行一个pod服务测试一下吧。</p>
+:ET
