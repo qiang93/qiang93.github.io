@@ -1,0 +1,345 @@
+I"Z*<p>kubernetes集群架构大纲</p>
+
+<ul>
+  <li>
+    <p>操作系统</p>
+  </li>
+  <li>
+    <ul>
+      <li>底层操作系统版本统一</li>
+      <li>
+        <blockquote>
+          <p>Ubuntu 18.04</p>
+        </blockquote>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <ul>
+      <li>k8s要求的内核参数优化</li>
+    </ul>
+  </li>
+  <li>
+    <ul>
+      <li>内核网络参数优化</li>
+    </ul>
+  </li>
+  <li>
+    <ul>
+      <li>服务器免密钥登录</li>
+      <li>
+        <blockquote>
+          <p>通过ansible-playbooks建立devops用户实行免密钥登录</p>
+        </blockquote>
+      </li>
+      <li>定制化操作系统镜像</li>
+      <li>
+        <blockquote>
+          <p>暂定</p>
+        </blockquote>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>资源规划</p>
+  </li>
+  <li>
+    <ul>
+      <li>
+        <p>地址规划</p>
+
+        <blockquote>
+          <p>待定，需要与IT网络沟通</p>
+        </blockquote>
+      </li>
+      <li>
+        <p>Master节点承载考虑</p>
+
+        <blockquote>
+          <p>Cpu: 4核</p>
+
+          <p>Memory: 8G</p>
+
+          <p>Network: 1G or 10G</p>
+
+          <p>Disk: SSD 250G-300G</p>
+        </blockquote>
+      </li>
+      <li>
+        <p>Work节点承载考虑</p>
+
+        <blockquote>
+          <p>Cpu: 8核</p>
+
+          <p>Memory: 16G</p>
+
+          <p>Network: 1G or 10G</p>
+
+          <p>Disk: SSD 250G-300G</p>
+        </blockquote>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>集群规划</p>
+  </li>
+  <li>
+    <ul>
+      <li>
+        <p>docker版本</p>
+      </li>
+      <li>
+        <blockquote>
+          <p>19.03.8</p>
+        </blockquote>
+      </li>
+      <li>
+        <p>kubernetes版本选择</p>
+
+        <blockquote>
+          <p>1.17.5</p>
+        </blockquote>
+      </li>
+      <li>
+        <p>集群安装工具选择</p>
+      </li>
+      <li>
+        <ul>
+          <li>
+            <p>Kubespray</p>
+
+            <blockquote>
+              <p>通过ansible-playbook管理</p>
+            </blockquote>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>集群高可用 (仅apiserver和etcd)</p>
+      </li>
+      <li>
+        <ul>
+          <li>
+            <p>三节点集群</p>
+          </li>
+          <li>
+            <p>Apiserver高可用</p>
+
+            <blockquote>
+              <p>使用Haproxy实现负载均衡</p>
+            </blockquote>
+          </li>
+          <li>
+            <p>4核8G（能承载中型业务场景）</p>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>ETCD服务高可用</p>
+      </li>
+      <li>
+        <ul>
+          <li>
+            <p>版本选择</p>
+
+            <blockquote>
+              <p>v3.3.12</p>
+            </blockquote>
+          </li>
+          <li>
+            <p>三节点集群，考虑是使用pod还是专用主机的方式</p>
+          </li>
+          <li>
+            <ul>
+              <li>对网络和磁盘IO较敏感</li>
+            </ul>
+          </li>
+          <li>
+            <p>查看官方推荐的资源参考文档（https://github.com/etcd-io/etcd/blob/master/Documentation/op-guide/hardware.md#example-hardware-configurations）</p>
+          </li>
+          <li>
+            <ul>
+              <li>集群的备份、恢复、升级、回滚、扩容等要求</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <ul>
+      <li>
+        <p>创建高可用集群的方法选择</p>
+
+        <ul>
+          <li>
+            <p>etcd和控制节点在相同机器</p>
+
+            <p><img src="https://d33wubrfki0l68.cloudfront.net/d1411cded83856552f37911eb4522d9887ca4e83/b94b2/images/kubeadm/kubeadm-ha-topology-stacked-etcd.svg" alt="堆叠式etcd拓扑" /></p>
+          </li>
+          <li>
+            <p>使用单独 的etcd集群</p>
+
+            <p><img src="https://d33wubrfki0l68.cloudfront.net/ad49fffce42d5a35ae0d0cc1186b97209d86b99c/5a6ae/images/kubeadm/kubeadm-ha-topology-external-etcd.svg" alt="外部etcd拓扑" /></p>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <ul>
+      <li>
+        <p>网络组件</p>
+      </li>
+      <li>
+        <ul>
+          <li>
+            <p>Calico (<strong>IPIP &amp;&amp; BGP &amp;&amp; 网络策略)</strong></p>
+
+            <ul>
+              <li>
+                <p>Calico BGP原理：将每个node都做成一个虚拟路由器，通过BGP协议实现相互路由信息的交换使之连接</p>
+
+                <ul>
+                  <li>
+                    <p>考虑：</p>
+
+                    <ul>
+                      <li>
+                        <p>服务器是否支持BGP,大部分公有云是不支持的（需要IT支持是否开启BGP协议）</p>
+                      </li>
+                      <li>
+                        <p>需要细粒度网络访问控制</p>
+                      </li>
+                      <li>
+                        <p>追求网络性能</p>
+                      </li>
+                      <li>
+                        <p>集群规模</p>
+                      </li>
+                      <li>
+                        <p>对于数百节点的规模需要使用calico-rr（路由器反射）使用单独的节点来做路由信息交换</p>
+
+                        <blockquote>
+                          <p>Calico 维护的网络在默认是（Node-to-Node Mesh）全互联模式，Calico集群中的节点之间都会相互建立连接，用于路由交换.</p>
+
+                          <p>白话就是以前公司的员工没有微信群的时候，找每个人沟通都很麻烦，那么建个群，里面的人都能收到，所以要找节点或着多个节点充当路由反射器，建议至少是2到3个，一个做备用，一个在维护的时候不影响其他的使用。</p>
+                        </blockquote>
+                      </li>
+                    </ul>
+                  </li>
+                  <li>
+                    <p>操作：</p>
+
+                    <ul>
+                      <li>
+                        <p>默认是IPIP模式，将<code class="highlighter-rouge">Always</code>改为<code class="highlighter-rouge">Never</code></p>
+
+                        <p><code class="highlighter-rouge">CALICO_IPV4POOL_IPIP：Never</code></p>
+                      </li>
+                    </ul>
+                  </li>
+                  <li>
+                    <p>原理图</p>
+
+                    <p><img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1ge58jl4haij30jp0b2jro.jpg" alt="" /></p>
+
+                    <blockquote>
+                      <p>相比flannel的vxlan和calico的ipip模式，将cni去掉了通过路由来表示，这个数据包也是先从veth的设备对的另一口发出，到达宿主机上的cali开头的虚拟网卡上，到达这一头也就达到了宿主机上的网络协议栈，另外就是当创建一个pod时帮你先起一个infra containers的容器，然后调用calico的二进制帮你去配置容器的网络，然后会根据路由表决定这个数据包到底发送到哪里去，可以从ip route看到路由表信息，这里显示是目的cni分配的子网络和目的宿主机的网络，也就是当进行跨主机通信的时候之间转发到下一跳地址走宿主机的eth0网卡出去，也就是一个直接的静态路由，这个下一跳就跟host-gw的形式一样了，这个和host-gw最大的区别calico使用的BGP路由的交换，而host-gw是使用的自己的路由交换，而BGP这个方案比较成熟，在大型网络中用的也比较多，所以要比flannel的方式好很多，而这些路由信息都是由BGP client传输过来，使用BGP协议传输而来的。</p>
+                    </blockquote>
+                  </li>
+                  <li>
+                    <p>calicocli</p>
+
+                    <blockquote>
+                      <p>通过这个工具可以管理calico,如查看calico节点状态 <code class="highlighter-rouge">calicoctl node status</code>，这个工具主要是往etcd中操作，将etcd中相关数据格式化输出</p>
+                    </blockquote>
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <p>ipip模式: 与flannel的vxlan模式</p>
+
+                <ul>
+                  <li>
+                    <p>IPIP是linux内核的驱动程序，可以对数据包进行隧道</p>
+                  </li>
+                  <li>
+                    <p>原理图</p>
+
+                    <p><img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1ge58kail3xj30jb0cdgm1.jpg" alt="" /></p>
+
+                    <ul>
+                      <li>
+                        <p>可以通过calicoctl查看当前calico使用的模式</p>
+
+                        <blockquote>
+                          <p>calicoctl get ippool -o wide</p>
+                        </blockquote>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <p>MTU配置</p>
+
+                <blockquote>
+                  <p>为了提高calico的网络性能，需要修改calico mtu，Flannel是会自动调整最佳</p>
+                </blockquote>
+
+                <p><img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1ge598tmvbyj31bg0fedg8.jpg" alt="" /></p>
+
+                <p>根据<a href="https://docs.projectcalico.org/v3.5/usage/configuration/mtu">calico官方说明</a>,根据服务器网卡的mtu值进行修改</p>
+
+                <p><code class="highlighter-rouge">如果您需要IP-in-IP，则工作负载**和**隧道接口的MTU大小应比网络的网络MTU小20个字节。这是由于隧道将添加到每个数据包的额外20字节报头</code></p>
+              </li>
+            </ul>
+          </li>
+          <li>
+            <p>Flannel (<strong>overlay)</strong></p>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>服务暴露方式</p>
+      </li>
+      <li>
+        <ul>
+          <li>NodePort</li>
+          <li>Traefik</li>
+          <li>边缘节点（haproxy+keeplive)</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>安全性</p>
+  </li>
+  <li>
+    <ul>
+      <li>
+        <p>集群API访问安全</p>
+      </li>
+      <li>
+        <ul>
+          <li>内网</li>
+          <li>通过kubeconfig.yaml证书方式访问</li>
+          <li>通过RBAC授权使用Token访问</li>
+          <li>
+            <table>
+              <tbody>
+                <tr>
+                  <td>使用DEX</td>
+                  <td>UAA</td>
+                  <td>OpenUnison认证方式（https://kubernetes.io/docs/reference/access-authn-authz/authentication/#configuring-the-api-server）</td>
+                </tr>
+              </tbody>
+            </table>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+:ET

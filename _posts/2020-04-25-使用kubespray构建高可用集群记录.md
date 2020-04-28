@@ -8,6 +8,7 @@ header-img: img/post-bg-swift2.jpg
 catalog: true
 tags:
     - Kubernetes
+	- kubespray
 ---
 ### 主要特点
 虽然是包装了kubeadm,但结合了ansible让部署一个高可用快速增减节点的k8s集群灵活度門檻降低了

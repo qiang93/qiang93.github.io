@@ -1,0 +1,136 @@
+I"�<h3 id="前言">前言</h3>
+
+<hr />
+
+<p>什么是调度平台？</p>
+
+<hr />
+
+<p>airflow是一个编排、调度和监控workflow的平台，是一个工作任务的调度平台</p>
+
+<p>Airflow有什么优势。</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>- Apache下的项目
+- 分布式
+</code></pre></div></div>
+
+<h3 id="思维导图">思维导图</h3>
+
+<hr />
+
+<blockquote>
+  <p>感谢知hu @郑征 提供的总结图，无耻的盗用了，如有冒犯可联系速速删除。</p>
+</blockquote>
+
+<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1ge2tacvzi8j30yg0hcwf9.jpg" alt="" /></p>
+
+<h4 id="添加dag配置和方法"> 添加DAG配置和方法</h4>
+
+<hr />
+
+<blockquote>
+  <p>挂载共享的存储卷</p>
+</blockquote>
+
+<ul>
+  <li>
+    <p>使用EFS、NFS此类共享存储卷</p>
+
+    <blockquote>
+      <p>设置accessMode ‘ReadOnlyMany’或’ReadWriteMany’。</p>
+
+      <p>对于requirements.txt通过configmap方式挂载，以便DAG在启动时安装</p>
+    </blockquote>
+  </li>
+  <li>
+    <p>Git-sync Sidecar容器</p>
+
+    <blockquote>
+      <p>最受欢迎的方式，通过在git中管理配置，以sidecar的方式部署一个git容器，可以设置刷新时间。</p>
+    </blockquote>
+  </li>
+  <li>
+    <p>嵌入式DAG</p>
+
+    <blockquote>
+      <p><a href="https://github.com/puckel/docker-airflow">puckel / docker-airflow</a> 分叉这个repo将DAG放入dags文件夹，并确保python依赖安装，然后封装docker images</p>
+    </blockquote>
+  </li>
+</ul>
+
+<h4 id="使用helm-stableairflow时的一些坑">使用helm stable/airflow时的一些坑</h4>
+
+<blockquote>
+  <p>使用helm stabe/airflow模板中web pod需要等待6-8分钟左右才能提供流量进入?</p>
+</blockquote>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>原因为定义了<span class="sb">`</span>airflow initdb<span class="sb">`</span>事件，此过程中将执行一些数据操作，如表创建，初始数据等。
+</code></pre></div></div>
+
+<blockquote>
+  <p>开启RBAC后需要进入web pod执行<code class="highlighter-rouge">airflow create_user</code>操作，为web ui创建一个管理员用户，如果使用的是外部数据库如<code class="highlighter-rouge">postgre、mysql</code>，且以变量ENV方式注入容器，在pod中将执行创建用户操作连接的将会是默认的<code class="highlighter-rouge">sqlite</code>数据库。</p>
+</blockquote>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>因为读取的是默认的airflow.cfg配置,解决方法为添加数据库的连接信息环境变量：  
+</code></pre></div></div>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">export </span><span class="nv">AIRFLOW__CORE__SQL_ALCHEMY_CONN</span><span class="o">=</span>postgresql+psycopg2://<span class="nv">$POSTGRES_USER</span>:<span class="nv">$POSTGRES_PASSWORD</span>@<span class="nv">$POSTGRES_HOST</span>:5432/<span class="nv">$POSTGRES_DB</span>
+airflow create_user <span class="nt">-r</span> Admin <span class="nt">-u</span> admin <span class="nt">-e</span> qianghu@qhtester.site <span class="nt">-f</span> hu <span class="nt">-l</span> qiang <span class="nt">-p</span> airflow
+</code></pre></div></div>
+
+<h3 id="附pg常用命令">附PG常用命令</h3>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>连接数据库, 默认的用户和数据库是postgres
+psql <span class="nt">-U</span> user <span class="nt">-d</span> dbname
+
+切换数据库,相当于mysql的use dbname
+<span class="se">\c</span> dbname
+列举数据库，相当于mysql的show databases
+<span class="se">\l</span>
+列举表，相当于mysql的show tables
+<span class="se">\d</span>t
+查看表结构，相当于desc tblname,show columns from tbname
+<span class="se">\d</span> tblname
+
+<span class="se">\d</span>i 查看索引 
+
+创建数据库： 
+create database <span class="o">[</span>数据库名]<span class="p">;</span> 
+删除数据库： 
+drop database <span class="o">[</span>数据库名]<span class="p">;</span>  
+<span class="k">*</span>重命名一个表： 
+alter table <span class="o">[</span>表名A] rename to <span class="o">[</span>表名B]<span class="p">;</span> 
+<span class="k">*</span>删除一个表： 
+drop table <span class="o">[</span>表名]<span class="p">;</span> 
+
+<span class="k">*</span>在已有的表里添加字段： 
+alter table <span class="o">[</span>表名] add column <span class="o">[</span>字段名] <span class="o">[</span>类型]<span class="p">;</span> 
+<span class="k">*</span>删除表中的字段： 
+alter table <span class="o">[</span>表名] drop column <span class="o">[</span>字段名]<span class="p">;</span> 
+<span class="k">*</span>重命名一个字段：  
+alter table <span class="o">[</span>表名] rename column <span class="o">[</span>字段名A] to <span class="o">[</span>字段名B]<span class="p">;</span> 
+<span class="k">*</span>给一个字段设置缺省值：  
+alter table <span class="o">[</span>表名] alter column <span class="o">[</span>字段名] <span class="nb">set </span>default <span class="o">[</span>新的默认值]<span class="p">;</span>
+<span class="k">*</span>去除缺省值：  
+alter table <span class="o">[</span>表名] alter column <span class="o">[</span>字段名] drop default<span class="p">;</span> 
+在表中插入数据： 
+insert into 表名 <span class="o">([</span>字段名m],[字段名n],......<span class="o">)</span> values <span class="o">([</span>列m的值],[列n的值],......<span class="o">)</span><span class="p">;</span> 
+修改表中的某行某列的数据： 
+update <span class="o">[</span>表名] <span class="nb">set</span> <span class="o">[</span>目标字段名]<span class="o">=[</span>目标值] where <span class="o">[</span>该行特征]<span class="p">;</span> 
+删除表中某行数据： 
+delete from <span class="o">[</span>表名] where <span class="o">[</span>该行特征]<span class="p">;</span> 
+delete from <span class="o">[</span>表名]<span class="p">;</span><span class="nt">--</span>删空整个表 
+创建表： 
+create table <span class="o">([</span>字段名1] <span class="o">[</span>类型1] &lt;references 关联表名<span class="o">(</span>关联的字段名<span class="o">)&gt;</span><span class="p">;</span>,[字段名2] <span class="o">[</span>类型2],......&lt;,primary key <span class="o">(</span>字段名m,字段名n,...<span class="o">)&gt;</span><span class="p">;</span><span class="o">)</span><span class="p">;</span> 
+<span class="se">\c</span>opyright     显示 PostgreSQL 的使用和发行条款
+<span class="se">\e</span>ncoding <span class="o">[</span>字元编码名称]
+                 显示或设定用户端字元编码
+<span class="se">\h</span> <span class="o">[</span>名称]      SQL 命令语法上的说明，用 <span class="k">*</span> 显示全部命令
+<span class="se">\p</span>rompt <span class="o">[</span>文本] 名称
+                 提示用户设定内部变数
+<span class="se">\p</span>assword <span class="o">[</span>USERNAME]
+                 securely change the password <span class="k">for </span>a user
+<span class="se">\q</span>             退出 psql
+</code></pre></div></div>
+
+:ET
