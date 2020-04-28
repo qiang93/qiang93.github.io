@@ -24,9 +24,13 @@ tags:
     以上依赖都在`requirements.txt`文件中
     对所有客户机免密钥登录
     
-    > 建立免密钥通信后所有操作可通过ansible来管理，
+    > 建立免密钥通信后所有操作可通过ansible来管理
 ---
+
+
+
 ### 安装pip3
+
 ```bash
 sudo apt install python3-pip -y
 sudo pip3 install --upgrade pip
