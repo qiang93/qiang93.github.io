@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      harbor推送镜像unknown blob错误记录
-subtitle:  harbor是一个镜像仓库管理项目
+subtitle:  	harbor是一个镜像仓库管理项目
 date:       2020-04-28
 author:     huqiang
 header-img: img/post-bg-swift2.jpg
