@@ -111,7 +111,7 @@ cd kubespray-2.12.5
         ## 修改etcd内存大小，不能写成1024M，否则etcd是启动不了的
         etcd_memory_limit: "1G"
         ## 修改etcd空间配额，不能用8G，示例中是错误的
-        etcd_quota_backend_bytes: "8388608"
+        etcd_quota_backend_bytes: "8589934592"  8*1024*1024*1024
         ```
     * `group_vars/all/all.yml`
         ```
@@ -146,7 +146,7 @@ cd kubespray-2.12.5
         download_run_once：仅下载一次镜像和二进制文件，并将其推送到集群节点
         download_localhost：下载在本地执行机上，需要安装docker,并且可以免密码sudo
     
-        ```
+    ```
         ansible-playbook -i inventory/stg-k8s-cluster/hosts.yaml cluster.yml \
             -e "{'download_run_once': true }" -e "{'download_localhost': true }"
         ```
